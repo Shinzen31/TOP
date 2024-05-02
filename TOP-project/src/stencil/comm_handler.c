@@ -1,12 +1,25 @@
 #include "stencil/comm_handler.h"
-
 #include "logging.h"
 
 #include <stdio.h>
 #include <unistd.h>
+#include <omp.h>
 
 #define MAXLEN 8UL
+#define BLOCK_SIZE_I 32
+#define BLOCK_SIZE_J 256
+#define BLOCK_SIZE_K 4
+#define GHOST_SIZE 32  // 假设幽灵单元的尺寸至少为块的最大尺寸
 
+static u32 gcd(u32 a, u32 b) {
+    u32 c;
+    while (b != 0) {
+        c = a % b;
+        a = b;
+        b = c;
+    }
+    return a;
+}
 
 static char* stringify(char buf[static MAXLEN], i32 num) {
     snprintf(buf, MAXLEN, "%d", num);
@@ -14,13 +27,10 @@ static char* stringify(char buf[static MAXLEN], i32 num) {
 }
 
 comm_handler_t comm_handler_new(u32 rank, u32 comm_size, usz dim_x, usz dim_y, usz dim_z) {
-    if (dim_x == 0 || dim_y == 0 || dim_z == 0) {
-        error("invalid mesh dimensions: %zu,%zu,%zu", dim_x, dim_y, dim_z);
-    }
-    
-    u32 const nb_z = (u32)dim_x * (u32)dim_y;
-    u32 const nb_y = (u32)dim_z;
-    u32 const nb_x = (comm_size / nb_z) / nb_y;  
+    // Compute splitting
+    u32 const nb_z = gcd(comm_size, (u32)(dim_x * dim_y));
+    u32 const nb_y = gcd(comm_size / nb_z, (u32)dim_z);
+    u32 const nb_x = (comm_size / nb_z) / nb_y;
 
     if (comm_size != nb_x * nb_y * nb_z) {
         error(
@@ -45,7 +55,7 @@ comm_handler_t comm_handler_new(u32 rank, u32 comm_size, usz dim_x, usz dim_y, u
     u32 const coord_y = rank_y * (u32)dim_y / nb_y;
     u32 const coord_x = rank_x * (u32)dim_x / nb_x;
 
-    // Compute neighboor nodes IDs
+    // Compute neighbor nodes IDs
     i32 const id_left = (rank_x > 0) ? (i32)rank - 1 : -1;
     i32 const id_right = (rank_x < nb_x - 1) ? (i32)rank + 1 : -1;
     i32 const id_top = (rank_y > 0) ? (i32)(rank - nb_x) : -1;
@@ -118,18 +128,20 @@ static void ghost_exchange_left_right(
         return;
     }
 
-    for (usz i = x_start; i < x_start + STENCIL_ORDER; ++i) {
-        for (usz j = 0; j < mesh->dim_y; ++j) {
-            for (usz k = 0; k < mesh->dim_z; ++k) {
+    // OpenMP optimization
+    #pragma omp parallel for collapse(3)
+    for (usz bi = x_start; bi < x_start + BLOCK_SIZE_I && bi < mesh->dim_x; bi += BLOCK_SIZE_I) {
+        for (usz bj = 0; bj < mesh->dim_y; bj += BLOCK_SIZE_J) {
+            for (usz bk = 0; bk < mesh->dim_z; bk += BLOCK_SIZE_K) {
                 switch (comm_kind) {
                     case COMM_KIND_SEND_OP:
                         MPI_Send(
-                            &mesh->cells[i][j][k].value, 1, MPI_DOUBLE, target, 0, MPI_COMM_WORLD
+                            &mesh->cells[bi][bj][bk].value, 1, MPI_DOUBLE, target, 0, MPI_COMM_WORLD
                         );
                         break;
                     case COMM_KIND_RECV_OP:
                         MPI_Recv(
-                            &mesh->cells[i][j][k].value,
+                            &mesh->cells[bi][bj][bk].value,
                             1,
                             MPI_DOUBLE,
                             target,
@@ -153,18 +165,20 @@ static void ghost_exchange_top_bottom(
         return;
     }
 
-    for (usz i = 0; i < mesh->dim_x; ++i) {
-        for (usz j = y_start; j < y_start + STENCIL_ORDER; ++j) {
-            for (usz k = 0; k < mesh->dim_z; ++k) {
+    // OpenMP optimization
+    #pragma omp parallel for collapse(3)
+    for (usz bj = y_start; bj < y_start + BLOCK_SIZE_J && bj < mesh->dim_y; bj += BLOCK_SIZE_J) {
+        for (usz bi = 0; bi < mesh->dim_x; bi += BLOCK_SIZE_I) {
+            for (usz bk = 0; bk < mesh->dim_z; bk += BLOCK_SIZE_K) {
                 switch (comm_kind) {
                     case COMM_KIND_SEND_OP:
                         MPI_Send(
-                            &mesh->cells[i][j][k].value, 1, MPI_DOUBLE, target, 0, MPI_COMM_WORLD
+                            &mesh->cells[bi][bj][bk].value, 1, MPI_DOUBLE, target, 0, MPI_COMM_WORLD
                         );
                         break;
                     case COMM_KIND_RECV_OP:
                         MPI_Recv(
-                            &mesh->cells[i][j][k].value,
+                            &mesh->cells[bi][bj][bk].value,
                             1,
                             MPI_DOUBLE,
                             target,
@@ -188,18 +202,20 @@ static void ghost_exchange_front_back(
         return;
     }
 
-    for (usz i = 0; i < mesh->dim_x; ++i) {
-        for (usz j = 0; j < mesh->dim_y; ++j) {
-            for (usz k = z_start; k < z_start + STENCIL_ORDER; ++k) {
+    // OpenMP optimization
+    #pragma omp parallel for collapse(3)
+    for (usz bk = z_start; bk < z_start + BLOCK_SIZE_K && bk < mesh->dim_z; bk += BLOCK_SIZE_K) {
+        for (usz bi = 0; bi < mesh->dim_x; bi += BLOCK_SIZE_I) {
+            for (usz bj = 0; bj < mesh->dim_y; bj += BLOCK_SIZE_J) {
                 switch (comm_kind) {
                     case COMM_KIND_SEND_OP:
                         MPI_Send(
-                            &mesh->cells[i][j][k].value, 1, MPI_DOUBLE, target, 0, MPI_COMM_WORLD
+                            &mesh->cells[bi][bj][bk].value, 1, MPI_DOUBLE, target, 0, MPI_COMM_WORLD
                         );
                         break;
                     case COMM_KIND_RECV_OP:
                         MPI_Recv(
-                            &mesh->cells[i][j][k].value,
+                            &mesh->cells[bi][bj][bk].value,
                             1,
                             MPI_DOUBLE,
                             target,
@@ -218,29 +234,29 @@ static void ghost_exchange_front_back(
 
 void comm_handler_ghost_exchange(comm_handler_t const* self, mesh_t* mesh) {
     // Left to right phase
-    ghost_exchange_left_right(self, mesh, COMM_KIND_SEND_OP, self->id_right, mesh->dim_x - 2 * STENCIL_ORDER);
+    ghost_exchange_left_right(self, mesh, COMM_KIND_SEND_OP, self->id_right, mesh->dim_x - 2 * BLOCK_SIZE_I);
     ghost_exchange_left_right(self, mesh, COMM_KIND_RECV_OP, self->id_left, 0);
     // Right to left phase
-    ghost_exchange_left_right(self, mesh, COMM_KIND_SEND_OP, self->id_left, STENCIL_ORDER);
-    ghost_exchange_left_right(self, mesh, COMM_KIND_RECV_OP, self->id_right, mesh->dim_x - STENCIL_ORDER);
+    ghost_exchange_left_right(self, mesh, COMM_KIND_SEND_OP, self->id_left, BLOCK_SIZE_I);
+    ghost_exchange_left_right(self, mesh, COMM_KIND_RECV_OP, self->id_right, mesh->dim_x - BLOCK_SIZE_I);
     // Prevent mixing communication from left/right with top/bottom and front/back
     MPI_Barrier(MPI_COMM_WORLD);
 
     // Top to bottom phase
-    ghost_exchange_top_bottom(self, mesh, COMM_KIND_SEND_OP, self->id_top, mesh->dim_y - 2 * STENCIL_ORDER);
+    ghost_exchange_top_bottom(self, mesh, COMM_KIND_SEND_OP, self->id_top, mesh->dim_y - 2 * BLOCK_SIZE_J);
     ghost_exchange_top_bottom(self, mesh, COMM_KIND_RECV_OP, self->id_bottom, 0);
     // Bottom to top phase
-    ghost_exchange_top_bottom(self, mesh, COMM_KIND_SEND_OP, self->id_bottom, STENCIL_ORDER);
-    ghost_exchange_top_bottom(self, mesh, COMM_KIND_RECV_OP, self->id_top, mesh->dim_y - STENCIL_ORDER);
+    ghost_exchange_top_bottom(self, mesh, COMM_KIND_SEND_OP, self->id_bottom, BLOCK_SIZE_J);
+    ghost_exchange_top_bottom(self, mesh, COMM_KIND_RECV_OP, self->id_top, mesh->dim_y - BLOCK_SIZE_J);
     // Prevent mixing communication from top/bottom with left/right and front/back
     MPI_Barrier(MPI_COMM_WORLD);
 
     // Front to back phase
-    ghost_exchange_front_back(self, mesh, COMM_KIND_SEND_OP, self->id_back, mesh->dim_z - 2 * STENCIL_ORDER);
+    ghost_exchange_front_back(self, mesh, COMM_KIND_SEND_OP, self->id_back, mesh->dim_z - 2 * BLOCK_SIZE_K);
     ghost_exchange_front_back(self, mesh, COMM_KIND_RECV_OP, self->id_front, 0);
     // Back to front phase
-    ghost_exchange_front_back(self, mesh, COMM_KIND_SEND_OP, self->id_front, STENCIL_ORDER);
-    ghost_exchange_front_back(self, mesh, COMM_KIND_RECV_OP, self->id_back, mesh->dim_z - STENCIL_ORDER);
+    ghost_exchange_front_back(self, mesh, COMM_KIND_SEND_OP, self->id_front, BLOCK_SIZE_K);
+    ghost_exchange_front_back(self, mesh, COMM_KIND_RECV_OP, self->id_back, mesh->dim_z - BLOCK_SIZE_K);
 
     // Need to synchronize all remaining in-flight communications before exiting
     MPI_Syncall(MPI_COMM_WORLD);
