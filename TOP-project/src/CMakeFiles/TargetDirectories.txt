@@ -1,5 +1,0 @@
-/mnt/e/vs缓存/TOP/TOP-project/src/CMakeFiles/stencil.dir
-/mnt/e/vs缓存/TOP/TOP-project/src/CMakeFiles/utils.dir
-/mnt/e/vs缓存/TOP/TOP-project/src/CMakeFiles/my_executable.dir
-/mnt/e/vs缓存/TOP/TOP-project/src/CMakeFiles/edit_cache.dir
-/mnt/e/vs缓存/TOP/TOP-project/src/CMakeFiles/rebuild_cache.dir

@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/my_executable.dir/main.c.o -o my_executable  -Wl,-rpath,/mnt/e/vs缓存/TOP/TOP-project/src:/usr/lib/x86_64-linux-gnu/openmpi/lib libstencil.so libutils.so -lm /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi.so 
