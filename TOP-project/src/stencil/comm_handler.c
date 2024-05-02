@@ -7,15 +7,6 @@
 
 #define MAXLEN 8UL
 
-static u32 gcd(u32 a, u32 b) {
-    u32 c;
-    while (b != 0) {
-        c = a % b;
-        a = b;
-        b = c;
-    }
-    return a;
-} // gcd(a, b) -> b, useful ???
 
 static char* stringify(char buf[static MAXLEN], i32 num) {
     snprintf(buf, MAXLEN, "%d", num);
@@ -23,10 +14,13 @@ static char* stringify(char buf[static MAXLEN], i32 num) {
 }
 
 comm_handler_t comm_handler_new(u32 rank, u32 comm_size, usz dim_x, usz dim_y, usz dim_z) {
-    // Compute splitting
-    u32 const nb_z = gcd(comm_size, (u32)(dim_x * dim_y)); // nb_z = dim_x * dim_y
-    u32 const nb_y = gcd(comm_size / nb_z, (u32)dim_z); // nb_y = dim_z
-    u32 const nb_x = (comm_size / nb_z) / nb_y;  // nb_x = comm_size / (dim_x * dim_y * dim_z)
+    if (dim_x == 0 || dim_y == 0 || dim_z == 0) {
+        error("invalid mesh dimensions: %zu,%zu,%zu", dim_x, dim_y, dim_z);
+    }
+    
+    u32 const nb_z = (u32)dim_x * (u32)dim_y;
+    u32 const nb_y = (u32)dim_z;
+    u32 const nb_x = (comm_size / nb_z) / nb_y;  
 
     if (comm_size != nb_x * nb_y * nb_z) {
         error(
