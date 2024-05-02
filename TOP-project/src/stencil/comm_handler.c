@@ -4,11 +4,14 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <omp.h>
+#include <math.h>
 
 #define MAXLEN 8UL
 #define BLOCK_SIZE_I 32
 #define BLOCK_SIZE_J 256
 #define BLOCK_SIZE_K 4
+#define min(x, y) ((x) < (y) ? (x) : (y))
+
 
 static u32 gcd(u32 a, u32 b) {
     u32 c;
@@ -127,9 +130,9 @@ static void ghost_exchange_left_right(
         return;
     }
 
-    // OpenMP optimization
+    // Optimisation OpenMP
     #pragma omp parallel for collapse(3)
-    for (usz bi = x_start; bi < mesh->dim_x && bi < x_start + BLOCK_SIZE_I; bi += BLOCK_SIZE_I) {
+    for (usz bi = x_start; bi < min(mesh->dim_x, x_start + BLOCK_SIZE_I); bi++) {
         for (usz bj = 0; bj < mesh->dim_y; bj++) {
             for (usz bk = 0; bk < mesh->dim_z; bk++) {
                 switch (comm_kind) {
@@ -164,9 +167,9 @@ static void ghost_exchange_top_bottom(
         return;
     }
 
-    // OpenMP optimization
+    // Optimisation OpenMP
     #pragma omp parallel for collapse(3)
-    for (usz bj = y_start; bj < mesh->dim_y && bj < y_start + BLOCK_SIZE_J; bj += BLOCK_SIZE_J) {
+    for (usz bj = y_start; bj < min(mesh->dim_y, y_start + BLOCK_SIZE_J); bj++) {
         for (usz bi = 0; bi < mesh->dim_x; bi++) {
             for (usz bk = 0; bk < mesh->dim_z; bk++) {
                 switch (comm_kind) {
@@ -201,9 +204,9 @@ static void ghost_exchange_front_back(
         return;
     }
 
-    // OpenMP optimization
+    // Optimisation OpenMP
     #pragma omp parallel for collapse(3)
-    for (usz bk = z_start; bk < mesh->dim_z && bk < z_start + BLOCK_SIZE_K; bk += BLOCK_SIZE_K) {
+    for (usz bk = z_start; bk < min(mesh->dim_z, z_start + BLOCK_SIZE_K); bk++) {
         for (usz bi = 0; bi < mesh->dim_x; bi++) {
             for (usz bj = 0; bj < mesh->dim_y; bj++) {
                 switch (comm_kind) {
