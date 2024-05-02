@@ -77,11 +77,37 @@ void init_meshes(mesh_t* A, mesh_t* B, mesh_t* C, comm_handler_t const* comm_han
         C->dim_z == comm_handler->loc_dim_z + STENCIL_ORDER * 2
     );
 
-    setup_mesh_cell_kinds(A);
-    setup_mesh_cell_kinds(B);
-    setup_mesh_cell_kinds(C);
+    // Setup mesh cell values and kinds for each mesh
+    for (usz i = 0; i < A->dim_x; ++i) {
+        for (usz j = 0; j < A->dim_y; ++j) {
+            for (usz k = 0; k < A->dim_z; ++k) {
+                // Compute cell value based on mesh kind
+                switch (A->kind) {
+                    case MESH_KIND_CONSTANT:
+                        A->cells[i][j][k].value = compute_core_pressure(
+                            comm_handler->coord_x + i - STENCIL_ORDER,
+                            comm_handler->coord_y + j - STENCIL_ORDER,
+                            comm_handler->coord_z + k - STENCIL_ORDER
+                        );
+                        break;
+                    case MESH_KIND_INPUT:
+                        A->cells[i][j][k].value = (i >= STENCIL_ORDER && i < A->dim_x - STENCIL_ORDER &&
+                                                   j >= STENCIL_ORDER && j < A->dim_y - STENCIL_ORDER &&
+                                                   k >= STENCIL_ORDER && k < A->dim_z - STENCIL_ORDER) ? 1.0 : 0.0;
+                        break;
+                    case MESH_KIND_OUTPUT:
+                        A->cells[i][j][k].value = 0.0;
+                        break;
+                    default:
+                        assert(0 && "Invalid mesh kind");
+                }
+                // Set cell kind based on position in mesh
+                A->cells[i][j][k].kind = mesh_set_cell_kind(A, i, j, k);
+            }
+        }
+    }
 
-    setup_mesh_cell_values(A, comm_handler);
-    setup_mesh_cell_values(B, comm_handler);
-    setup_mesh_cell_values(C, comm_handler);
+    // Copy initialized mesh A to meshes B and C
+    mesh_copy_core(B, A);
+    mesh_copy_core(C, A);
 }
