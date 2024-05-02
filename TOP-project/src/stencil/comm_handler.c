@@ -9,7 +9,6 @@
 #define BLOCK_SIZE_I 32
 #define BLOCK_SIZE_J 256
 #define BLOCK_SIZE_K 4
-#define GHOST_SIZE 32
 
 static u32 gcd(u32 a, u32 b) {
     u32 c;
