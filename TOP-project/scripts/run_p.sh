@@ -16,7 +16,7 @@ perf report >> ../speed_up/perf_500.txt
 perf record ./my_executable ../config_1000.txt ../results/res_1000.txt
 perf report >> ../speed_up/perf_1000.txt
 
-
+rm -f perf.da*
 
 cd ../scripts
 ./clean.sh
