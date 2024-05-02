@@ -1,32 +1,43 @@
 cmake_minimum_required(VERSION 3.10)
 project(TOP-project)
 
-# Find MPI
+# Recherche d'OpenMP
+find_package(OpenMP REQUIRED)
+
+# Recherche de MPI
 find_package(MPI REQUIRED)
 
-# Add stencil library
+# Ajout de la biblioth猫que stencil
 add_library(stencil SHARED stencil/config.c stencil/comm_handler.c stencil/mesh.c stencil/init.c stencil/solve.c)
-# Include directories for stencil
+# Ajout des r茅pertoires d'inclusion pour stencil
 target_include_directories(stencil PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
-    ${MPI_C_INCLUDE_PATH}  # Include MPI headers
+    ${MPI_C_INCLUDE_PATH}  # Inclusion des fichiers d'en-t锚te MPI
 )
-# Link libraries for stencil
+# Liaison des biblioth猫ques 脿 stencil
 target_link_libraries(stencil PUBLIC 
     m
-    ${MPI_C_LIBRARIES}  # Link MPI libraries
+    ${MPI_C_LIBRARIES}  # Liaison avec la biblioth猫que MPI
+    OpenMP::OpenMP_C  # Liaison avec OpenMP
 )
 
-# Add utils library
+# Ajout de la biblioth猫que utils
 add_library(utils SHARED chrono.c)
 target_include_directories(utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
-# Alias libraries
+# Alias des biblioth猫ques
 add_library(stencil::stencil ALIAS stencil)
 add_library(stencil::utils ALIAS utils)
 
-# 添加一个可执行文件
+# Ajout d'un ex茅cutable
 add_executable(my_executable main.c)
 
-# 链接库到可执行文件，假设 main.c 依赖于 utils 和 stencil
+# Liaison des biblioth猫ques 脿 l'ex茅cutable, en supposant que main.c d茅pend de utils et stencil
 target_link_libraries(my_executable stencil::stencil stencil::utils)
+
+# Si OpenMP et MPI ont 茅t茅 trouv茅s, assurez-vous d'ajouter les options de compilation 脿 toutes les cibles
+if(OPENMP_FOUND AND MPI_FOUND)
+    target_compile_options(stencil PRIVATE ${OpenMP_C_FLAGS})
+    target_compile_options(utils PRIVATE ${OpenMP_C_FLAGS})
+    target_compile_options(my_executable PRIVATE ${OpenMP_C_FLAGS})
+endif()
