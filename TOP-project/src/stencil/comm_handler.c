@@ -123,111 +123,72 @@ static i32 MPI_Syncall_callback(MPI_Comm comm) {
 }
 static MPI_Syncfunc_t* MPI_Syncall = MPI_Syncall_callback;
 
-static void ghost_exchange_left_right(
-    comm_handler_t const* self, mesh_t* mesh, comm_kind_t comm_kind, i32 target, usz x_start
-) {
-    if (target < 0) {
-        return;
-    }
+static void ghost_exchange_left_right(comm_handler_t const* self, mesh_t* mesh, comm_kind_t comm_kind, i32 target, usz x_start) {
+    if (target < 0) return;
 
-    // Optimisation OpenMP
+    usz x_end = min(mesh->dim_x, x_start + BLOCK_SIZE_I);
+    MPI_Request request;
+    MPI_Status status;
+
     #pragma omp parallel for collapse(3)
-    for (usz bi = x_start; bi < min(mesh->dim_x, x_start + BLOCK_SIZE_I); bi++) {
+    for (usz bi = x_start; bi < x_end; bi++) {
         for (usz bj = 0; bj < mesh->dim_y; bj++) {
             for (usz bk = 0; bk < mesh->dim_z; bk++) {
-                switch (comm_kind) {
-                    case COMM_KIND_SEND_OP:
-                        MPI_Send(
-                            &mesh->cells[bi][bj][bk].value, 1, MPI_DOUBLE, target, 0, MPI_COMM_WORLD
-                        );
-                        break;
-                    case COMM_KIND_RECV_OP:
-                        MPI_Recv(
-                            &mesh->cells[bi][bj][bk].value,
-                            1,
-                            MPI_DOUBLE,
-                            target,
-                            0,
-                            MPI_COMM_WORLD,
-                            MPI_STATUS_IGNORE
-                        );
-                        break;
-                    default:
-                        __builtin_unreachable();
+                if (comm_kind == COMM_KIND_SEND_OP) {
+                    MPI_Isend(&mesh->cells[bi][bj][bk].value, 1, MPI_DOUBLE, target, 0, MPI_COMM_WORLD, &request);
+                    MPI_Wait(&request, &status);
+                } else if (comm_kind == COMM_KIND_RECV_OP) {
+                    MPI_Irecv(&mesh->cells[bi][bj][bk].value, 1, MPI_DOUBLE, target, 0, MPI_COMM_WORLD, &request);
+                    MPI_Wait(&request, &status);
                 }
             }
         }
     }
 }
 
-static void ghost_exchange_top_bottom(
-    comm_handler_t const* self, mesh_t* mesh, comm_kind_t comm_kind, i32 target, usz y_start
-) {
-    if (target < 0) {
-        return;
-    }
 
-    // Optimisation OpenMP
+
+static void ghost_exchange_top_bottom(comm_handler_t const* self, mesh_t* mesh, comm_kind_t comm_kind, i32 target, usz y_start) {
+    if (target < 0) return;
+
+    usz y_end = min(mesh->dim_y, y_start + BLOCK_SIZE_J);
+    MPI_Request request;
+    MPI_Status status;
+
     #pragma omp parallel for collapse(3)
-    for (usz bj = y_start; bj < min(mesh->dim_y, y_start + BLOCK_SIZE_J); bj++) {
+    for (usz bj = y_start; bj < y_end; bj++) {
         for (usz bi = 0; bi < mesh->dim_x; bi++) {
             for (usz bk = 0; bk < mesh->dim_z; bk++) {
-                switch (comm_kind) {
-                    case COMM_KIND_SEND_OP:
-                        MPI_Send(
-                            &mesh->cells[bi][bj][bk].value, 1, MPI_DOUBLE, target, 0, MPI_COMM_WORLD
-                        );
-                        break;
-                    case COMM_KIND_RECV_OP:
-                        MPI_Recv(
-                            &mesh->cells[bi][bj][bk].value,
-                            1,
-                            MPI_DOUBLE,
-                            target,
-                            0,
-                            MPI_COMM_WORLD,
-                            MPI_STATUS_IGNORE
-                        );
-                        break;
-                    default:
-                        __builtin_unreachable();
+                if (comm_kind == COMM_KIND_SEND_OP) {
+                    MPI_Isend(&mesh->cells[bi][bj][bk].value, 1, MPI_DOUBLE, target, 0, MPI_COMM_WORLD, &request);
+                    MPI_Wait(&request, &status);
+                } else if (comm_kind == COMM_KIND_RECV_OP) {
+                    MPI_Irecv(&mesh->cells[bi][bj][bk].value, 1, MPI_DOUBLE, target, 0, MPI_COMM_WORLD, &request);
+                    MPI_Wait(&request, &status);
                 }
             }
         }
     }
 }
 
-static void ghost_exchange_front_back(
-    comm_handler_t const* self, mesh_t* mesh, comm_kind_t comm_kind, i32 target, usz z_start
-) {
-    if (target < 0) {
-        return;
-    }
 
-    // Optimisation OpenMP
+static void ghost_exchange_front_back(comm_handler_t const* self, mesh_t* mesh, comm_kind_t comm_kind, i32 target, usz z_start) {
+    if (target < 0) return;
+
+    usz z_end = min(mesh->dim_z, z_start + BLOCK_SIZE_K);
+    MPI_Request request;
+    MPI_Status status;
+
     #pragma omp parallel for collapse(3)
-    for (usz bk = z_start; bk < min(mesh->dim_z, z_start + BLOCK_SIZE_K); bk++) {
+    for (usz bk = z_start; bk < z_end; bk++) {
         for (usz bi = 0; bi < mesh->dim_x; bi++) {
             for (usz bj = 0; bj < mesh->dim_y; bj++) {
-                switch (comm_kind) {
-                    case COMM_KIND_SEND_OP:
-                        MPI_Send(
-                            &mesh->cells[bi][bj][bk].value, 1, MPI_DOUBLE, target, 0, MPI_COMM_WORLD
-                        );
-                        break;
-                    case COMM_KIND_RECV_OP:
-                        MPI_Recv(
-                            &mesh->cells[bi][bj][bk].value,
-                            1,
-                            MPI_DOUBLE,
-                            target,
-                            0,
-                            MPI_COMM_WORLD,
-                            MPI_STATUS_IGNORE
-                        );
-                        break;
-                    default:
-                        __builtin_unreachable();
+                if (comm_kind == COMM_KIND_SEND_OP) {
+                    MPI_Isend(&mesh->cells[bi][bj][bk].value, 1, MPI_DOUBLE, target, 0, MPI_COMM_WORLD, &request);
+                    MPI_Wait(&request, &status);
+                } else if (comm_kind == COMM_KIND_RECV_OP) {
+                    MPI_Irecv(&mesh->cells[bi][bj][bk].value, 1, MPI_DOUBLE, target, 0, MPI_COMM_WORLD, &request);
+                    MPI_Wait(&request, &status);
                 }
             }
         }
@@ -235,31 +196,49 @@ static void ghost_exchange_front_back(
 }
 
 void comm_handler_ghost_exchange(comm_handler_t const* self, mesh_t* mesh) {
+    // Ensure all processes reach this point before proceeding
+    MPI_Barrier(MPI_COMM_WORLD);
+
     // Left to right phase
     ghost_exchange_left_right(self, mesh, COMM_KIND_SEND_OP, self->id_right, mesh->dim_x - 2 * BLOCK_SIZE_I);
     ghost_exchange_left_right(self, mesh, COMM_KIND_RECV_OP, self->id_left, 0);
+
+    // Ensure all processes have completed left to right communication
+    MPI_Barrier(MPI_COMM_WORLD);
+
     // Right to left phase
     ghost_exchange_left_right(self, mesh, COMM_KIND_SEND_OP, self->id_left, BLOCK_SIZE_I);
     ghost_exchange_left_right(self, mesh, COMM_KIND_RECV_OP, self->id_right, mesh->dim_x - BLOCK_SIZE_I);
-    // Prevent mixing communication from left/right with top/bottom and front/back
+
+    // Ensure all processes have completed right to left communication
     MPI_Barrier(MPI_COMM_WORLD);
 
     // Top to bottom phase
     ghost_exchange_top_bottom(self, mesh, COMM_KIND_SEND_OP, self->id_top, mesh->dim_y - 2 * BLOCK_SIZE_J);
     ghost_exchange_top_bottom(self, mesh, COMM_KIND_RECV_OP, self->id_bottom, 0);
+
+    // Ensure all processes have completed top to bottom communication
+    MPI_Barrier(MPI_COMM_WORLD);
+
     // Bottom to top phase
     ghost_exchange_top_bottom(self, mesh, COMM_KIND_SEND_OP, self->id_bottom, BLOCK_SIZE_J);
     ghost_exchange_top_bottom(self, mesh, COMM_KIND_RECV_OP, self->id_top, mesh->dim_y - BLOCK_SIZE_J);
-    // Prevent mixing communication from top/bottom with left/right and front/back
+
+    // Ensure all processes have completed bottom to top communication
     MPI_Barrier(MPI_COMM_WORLD);
 
     // Front to back phase
     ghost_exchange_front_back(self, mesh, COMM_KIND_SEND_OP, self->id_back, mesh->dim_z - 2 * BLOCK_SIZE_K);
     ghost_exchange_front_back(self, mesh, COMM_KIND_RECV_OP, self->id_front, 0);
+
+    // Ensure all processes have completed front to back communication
+    MPI_Barrier(MPI_COMM_WORLD);
+
     // Back to front phase
     ghost_exchange_front_back(self, mesh, COMM_KIND_SEND_OP, self->id_front, BLOCK_SIZE_K);
     ghost_exchange_front_back(self, mesh, COMM_KIND_RECV_OP, self->id_back, mesh->dim_z - BLOCK_SIZE_K);
 
-    // Need to synchronize all remaining in-flight communications before exiting
-    MPI_Syncall(MPI_COMM_WORLD);
+    // Ensure all processes are synchronized before any further execution
+    MPI_Barrier(MPI_COMM_WORLD);
 }
+
