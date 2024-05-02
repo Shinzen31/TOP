@@ -9,7 +9,7 @@
 #define BLOCK_SIZE_I 32
 #define BLOCK_SIZE_J 256
 #define BLOCK_SIZE_K 4
-#define GHOST_SIZE 32  // 假设幽灵单元的尺寸至少为块的最大尺寸
+#define GHOST_SIZE 32
 
 static u32 gcd(u32 a, u32 b) {
     u32 c;
@@ -130,9 +130,9 @@ static void ghost_exchange_left_right(
 
     // OpenMP optimization
     #pragma omp parallel for collapse(3)
-    for (usz bi = x_start; bi < x_start + BLOCK_SIZE_I && bi < mesh->dim_x; bi += BLOCK_SIZE_I) {
-        for (usz bj = 0; bj < mesh->dim_y; bj += BLOCK_SIZE_J) {
-            for (usz bk = 0; bk < mesh->dim_z; bk += BLOCK_SIZE_K) {
+    for (usz bi = x_start; bi < mesh->dim_x && bi < x_start + BLOCK_SIZE_I; bi += BLOCK_SIZE_I) {
+        for (usz bj = 0; bj < mesh->dim_y; bj++) {
+            for (usz bk = 0; bk < mesh->dim_z; bk++) {
                 switch (comm_kind) {
                     case COMM_KIND_SEND_OP:
                         MPI_Send(
@@ -167,9 +167,9 @@ static void ghost_exchange_top_bottom(
 
     // OpenMP optimization
     #pragma omp parallel for collapse(3)
-    for (usz bj = y_start; bj < y_start + BLOCK_SIZE_J && bj < mesh->dim_y; bj += BLOCK_SIZE_J) {
-        for (usz bi = 0; bi < mesh->dim_x; bi += BLOCK_SIZE_I) {
-            for (usz bk = 0; bk < mesh->dim_z; bk += BLOCK_SIZE_K) {
+    for (usz bj = y_start; bj < mesh->dim_y && bj < y_start + BLOCK_SIZE_J; bj += BLOCK_SIZE_J) {
+        for (usz bi = 0; bi < mesh->dim_x; bi++) {
+            for (usz bk = 0; bk < mesh->dim_z; bk++) {
                 switch (comm_kind) {
                     case COMM_KIND_SEND_OP:
                         MPI_Send(
@@ -204,9 +204,9 @@ static void ghost_exchange_front_back(
 
     // OpenMP optimization
     #pragma omp parallel for collapse(3)
-    for (usz bk = z_start; bk < z_start + BLOCK_SIZE_K && bk < mesh->dim_z; bk += BLOCK_SIZE_K) {
-        for (usz bi = 0; bi < mesh->dim_x; bi += BLOCK_SIZE_I) {
-            for (usz bj = 0; bj < mesh->dim_y; bj += BLOCK_SIZE_J) {
+    for (usz bk = z_start; bk < mesh->dim_z && bk < z_start + BLOCK_SIZE_K; bk += BLOCK_SIZE_K) {
+        for (usz bi = 0; bi < mesh->dim_x; bi++) {
+            for (usz bj = 0; bj < mesh->dim_y; bj++) {
                 switch (comm_kind) {
                     case COMM_KIND_SEND_OP:
                         MPI_Send(
