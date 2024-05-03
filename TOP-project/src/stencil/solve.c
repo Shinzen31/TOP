@@ -18,22 +18,30 @@ void solve_jacobi(mesh_t* A, mesh_t const* B, mesh_t* C) {
     usz const dim_z = A->dim_z;
     usz i, j, k, o, bi, bj, bk;
 
-    #pragma omp parallel for private(i, j, k, bi, bj, bk, o) // Activation de la parallélisation
+    // Precompute powers of 17
+    double precomputed_powers[STENCIL_ORDER + 1];
+    for (int i = 1; i <= STENCIL_ORDER; i++) {
+        precomputed_powers[i] = pow(17.0, (double)i);
+    }
+
+    // Fix the number of threads to 24 using OpenMP
+    omp_set_num_threads(16);
+
+    #pragma omp parallel for private(i, j, k, bi, bj, bk, o) collapse(3) schedule(dynamic)
     for (k = STENCIL_ORDER; k < dim_z - STENCIL_ORDER; k += BLOCK_SIZE_K) {
         for (j = STENCIL_ORDER; j < dim_y - STENCIL_ORDER; j += BLOCK_SIZE_J) {
             for (i = STENCIL_ORDER; i < dim_x - STENCIL_ORDER; i += BLOCK_SIZE_I) {
-                // Déroulement de boucle et division
                 for (bk = k; bk < k + BLOCK_SIZE_K && bk < dim_z - STENCIL_ORDER; ++bk) {
                     for (bj = j; bj < j + BLOCK_SIZE_J && bj < dim_y - STENCIL_ORDER; ++bj) {
                         for (bi = i; bi < i + BLOCK_SIZE_I && bi < dim_x - STENCIL_ORDER; ++bi) {
                             f64 sum = A->cells[bi][bj][bk].value * B->cells[bi][bj][bk].value;
                             for (o = 1; o <= STENCIL_ORDER; ++o) {
-                                sum += A->cells[bi + o][bj][bk].value * B->cells[bi + o][bj][bk].value / pow(17.0, (f64)o);
-                                sum += A->cells[bi - o][bj][bk].value * B->cells[bi - o][bj][bk].value / pow(17.0, (f64)o);
-                                sum += A->cells[bi][bj + o][bk].value * B->cells[bi][bj + o][bk].value / pow(17.0, (f64)o);
-                                sum += A->cells[bi][bj - o][bk].value * B->cells[bi][bj - o][bk].value / pow(17.0, (f64)o);
-                                sum += A->cells[bi][bj][bk + o].value * B->cells[bi][bj][bk + o].value / pow(17.0, (f64)o);
-                                sum += A->cells[bi][bj][bk - o].value * B->cells[bi][bj][bk - o].value / pow(17.0, (f64)o);
+                                sum += A->cells[bi + o][bj][bk].value * B->cells[bi + o][bj][bk].value / precomputed_powers[o];
+                                sum += A->cells[bi - o][bj][bk].value * B->cells[bi - o][bj][bk].value / precomputed_powers[o];
+                                sum += A->cells[bi][bj + o][bk].value * B->cells[bi][bj + o][bk].value / precomputed_powers[o];
+                                sum += A->cells[bi][bj - o][bk].value * B->cells[bi][bj - o][bk].value / precomputed_powers[o];
+                                sum += A->cells[bi][bj][bk + o].value * B->cells[bi][bj][bk + o].value / precomputed_powers[o];
+                                sum += A->cells[bi][bj][bk - o].value * B->cells[bi][bj][bk - o].value / precomputed_powers[o];
                             }
                             C->cells[bi][bj][bk].value = sum;
                         }
