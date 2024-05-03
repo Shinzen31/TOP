@@ -731,3 +731,13 @@
 #
 # (Tip: To record every process run by a user: perf record -u <user>)
 #
+[1;33mwarning:[0m difference found at iteration 1: 4.299771e-01
+[1;33mwarning:[0m difference found at iteration 2: 6.992642e-01
+[1;33mwarning:[0m difference found at iteration 3: 1.415041e+00
+[1;33mwarning:[0m difference found at iteration 4: 2.136699e+00
+[1;33mwarning:[0m difference found at iteration 5: 3.451843e+00
+[1;33mwarning:[0m difference found at iteration 6: 5.017828e+00
+[1;33mwarning:[0m difference found at iteration 7: 7.498607e+00
+[1;33mwarning:[0m difference found at iteration 8: 1.067051e+01
+[1;33mwarning:[0m difference found at iteration 9: 1.537938e+01
+[1;33mwarning:[0m difference found at iteration 10: 2.160833e+01

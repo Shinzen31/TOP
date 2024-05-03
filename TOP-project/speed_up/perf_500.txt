@@ -1296,3 +1296,13 @@
 #
 # (Tip: Print event counts in CSV format with: perf stat -x,)
 #
+[1;33mwarning:[0m difference found at iteration 1: 2.403558e-01
+[1;33mwarning:[0m difference found at iteration 2: 5.185702e-01
+[1;33mwarning:[0m difference found at iteration 3: 1.071286e+00
+[1;33mwarning:[0m difference found at iteration 4: 1.762610e+00
+[1;33mwarning:[0m difference found at iteration 5: 2.882718e+00
+[1;33mwarning:[0m difference found at iteration 6: 4.366279e+00
+[1;33mwarning:[0m difference found at iteration 7: 6.586622e+00
+[1;33mwarning:[0m difference found at iteration 8: 9.602711e+00
+[1;33mwarning:[0m difference found at iteration 9: 1.394951e+01
+[1;33mwarning:[0m difference found at iteration 10: 1.991579e+01

@@ -1631,3 +1631,8 @@
 #
 # (Tip: To report cacheline events from previous recording: perf c2c report)
 #
+[1;33mwarning:[0m difference found at iteration 1: 9.390598e-01
+[1;33mwarning:[0m difference found at iteration 2: 1.478519e+00
+[1;33mwarning:[0m difference found at iteration 3: 2.420576e+00
+[1;33mwarning:[0m difference found at iteration 4: 3.319972e+00
+[1;33mwarning:[0m difference found at iteration 5: 4.803695e+00
