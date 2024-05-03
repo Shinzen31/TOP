@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <math.h>
+#include <omp.h>
 
 // Cache blocking sizes
 #define BLOCK_SIZE_I 32
@@ -16,6 +17,7 @@ static f64 compute_core_pressure(usz i, usz j, usz k) {
 
 // Optimized setup_mesh_cell_values with cache blocking
 static void setup_mesh_cell_values(mesh_t* mesh, comm_handler_t const* comm_handler) {
+    #pragma omp parallel for collapse(6)
     for (usz k = 0; k < mesh->dim_z; k += BLOCK_SIZE_K) {
         for (usz j = 0; j < mesh->dim_y; j += BLOCK_SIZE_J) {
             for (usz i = 0; i < mesh->dim_x; i += BLOCK_SIZE_I) {
@@ -54,6 +56,7 @@ static void setup_mesh_cell_values(mesh_t* mesh, comm_handler_t const* comm_hand
 }
 
 static void setup_mesh_cell_kinds(mesh_t* mesh) {
+    #pragma omp parallel for collapse(3)
     for (usz i = 0; i < mesh->dim_x; ++i) {
         for (usz j = 0; j < mesh->dim_y; ++j) {
             for (usz k = 0; k < mesh->dim_z; ++k) {
@@ -78,6 +81,7 @@ void init_meshes(mesh_t* A, mesh_t* B, mesh_t* C, comm_handler_t const* comm_han
     );
 
     // Setup mesh cell values and kinds for each mesh
+    #pragma omp parallel for collapse(3)
     for (usz i = 0; i < A->dim_x; ++i) {
         for (usz j = 0; j < A->dim_y; ++j) {
             for (usz k = 0; k < A->dim_z; ++k) {

@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include <omp.h>
+
 mesh_t mesh_new(usz dim_x, usz dim_y, usz dim_z, mesh_kind_t kind) {
     usz const ghost_size = 2 * STENCIL_ORDER;
 
@@ -14,7 +16,7 @@ mesh_t mesh_new(usz dim_x, usz dim_y, usz dim_z, mesh_kind_t kind) {
         error("failed to allocate dimension X of mesh of size %zu bytes", (dim_x + ghost_size) * sizeof(cell_t**));
         return (mesh_t){0};  // Return an empty mesh on failure
     }
-    //#pragma omp parallel for  // parallel
+    #pragma omp parallel for  // parallel
     for (usz i = 0; i < dim_x + ghost_size; ++i) {
         cells[i] = malloc((dim_y + ghost_size) * sizeof(cell_t*));
         if (NULL == cells[i]) {
@@ -27,6 +29,7 @@ mesh_t mesh_new(usz dim_x, usz dim_y, usz dim_z, mesh_kind_t kind) {
             return (mesh_t){0};  // Return an empty mesh on failure
         }
 
+        #pragma omp parallel for
         for (usz j = 0; j < dim_y + ghost_size; ++j) {
             cells[i][j] = malloc((dim_z + ghost_size) * sizeof(cell_t));
             if (NULL == cells[i][j]) {
@@ -55,6 +58,7 @@ mesh_t mesh_new(usz dim_x, usz dim_y, usz dim_z, mesh_kind_t kind) {
 
 void mesh_drop(mesh_t* self) {
     if (NULL != self->cells) {
+        #pragma omp parallel for collapse(2)
         for (usz i = 0; i < self->dim_x; ++i) {
             for (usz j = 0; j < self->dim_y; ++j) {
                 free(self->cells[i][j]);
@@ -86,6 +90,7 @@ void mesh_print(mesh_t const* self, char const* name) {
         self->dim_z
     );
 
+    #pragma omp parallel for collapse(3)
     for (usz i = 0; i < self->dim_x; ++i) {
         for (usz j = 0; j < self->dim_y; ++j) {
             for (usz k = 0; k < self->dim_z; ++k) {
