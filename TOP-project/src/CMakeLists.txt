@@ -49,7 +49,7 @@ if(OPENMP_FOUND AND MPI_FOUND)
     elseif(MSVC)
         # MSVC doesn't use the same flag, but AVX support is enabled by default
     endif()
-    target_compile_options(stencil PRIVATE ${OpenMP_C_FLAGS})
+    target_compile_options(stencil PRIVATE ${OpenMP_C_FLAGS} -mavx)
     target_compile_options(utils PRIVATE ${OpenMP_C_FLAGS})
     target_compile_options(my_executable PRIVATE ${OpenMP_C_FLAGS})
 endif()
