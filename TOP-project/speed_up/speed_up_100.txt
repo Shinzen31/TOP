@@ -1,1 +1,1 @@
-[32mResult is 2549.31% faster than reference[0m
+[32mResult is 1791.42% faster than reference[0m
