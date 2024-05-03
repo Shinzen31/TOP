@@ -4,8 +4,8 @@
 #include <math.h>
 #include <omp.h> // Inclusion de la bibliothèque OpenMP
 
-#define BLOCK_SIZE_I 25   // Taille de bloc pour s'adapter à la mémoire cache L1 //divisible
-#define BLOCK_SIZE_J 100  // Taille de bloc pour s'adapter à la mémoire cache L2 //divisible
+#define BLOCK_SIZE_I 32   // Taille de bloc pour s'adapter à la mémoire cache L1 
+#define BLOCK_SIZE_J 100  // Taille de bloc pour s'adapter à la mémoire cache L2 
 #define BLOCK_SIZE_K 4    // Taille de bloc pour s'adapter à la mémoire cache L3
 
 void solve_jacobi(mesh_t* A, mesh_t const* B, mesh_t* C) {
