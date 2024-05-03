@@ -8,7 +8,7 @@
 
 #define MAXLEN 8UL
 #define BLOCK_SIZE_I 32
-#define BLOCK_SIZE_J 100 // divisible
+#define BLOCK_SIZE_J 256
 #define BLOCK_SIZE_K 4
 // #define min(x, y) ((x) < (y) ? (x) : (y)) 
 #define min(x, y) (((x) <= (y)) * (x) + ((x) > (y)) * (y)) // speedup: no branching
