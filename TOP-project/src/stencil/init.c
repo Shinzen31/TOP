@@ -17,7 +17,7 @@ static f64 compute_core_pressure(usz i, usz j, usz k) {
 
 // Optimized setup_mesh_cell_values with cache blocking
 static void setup_mesh_cell_values(mesh_t* mesh, comm_handler_t const* comm_handler) {
-    #pragma omp parallel for collapse(6)
+    #pragma omp parallel for collapse(3)
     for (usz k = 0; k < mesh->dim_z; k += BLOCK_SIZE_K) {
         for (usz j = 0; j < mesh->dim_y; j += BLOCK_SIZE_J) {
             for (usz i = 0; i < mesh->dim_x; i += BLOCK_SIZE_I) {
