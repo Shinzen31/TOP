@@ -25,7 +25,7 @@ void solve_jacobi(mesh_t* A, mesh_t const* B, mesh_t* C) {
     }
 
     // Fix the number of threads to 24 using OpenMP
-    //omp_set_num_threads(24);
+    omp_set_num_threads(24);
 
     #pragma omp parallel for private(i, j, k, bi, bj, bk, o) collapse(3) schedule(dynamic)
     for (k = STENCIL_ORDER; k < dim_z - STENCIL_ORDER; k += BLOCK_SIZE_K) {
