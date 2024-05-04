@@ -36,12 +36,13 @@ void solve_jacobi(mesh_t* A, mesh_t const* B, mesh_t* C) {
                         for (bi = i; bi < i + BLOCK_SIZE_I && bi < dim_x - STENCIL_ORDER; ++bi) {
                             f64 sum = A->cells[bi][bj][bk].value * B->cells[bi][bj][bk].value;
                             for (o = 1; o <= STENCIL_ORDER; ++o) {
-                                sum += A->cells[bi + o][bj][bk].value * B->cells[bi + o][bj][bk].value / precomputed_powers[o];
-                                sum += A->cells[bi - o][bj][bk].value * B->cells[bi - o][bj][bk].value / precomputed_powers[o];
-                                sum += A->cells[bi][bj + o][bk].value * B->cells[bi][bj + o][bk].value / precomputed_powers[o];
-                                sum += A->cells[bi][bj - o][bk].value * B->cells[bi][bj - o][bk].value / precomputed_powers[o];
-                                sum += A->cells[bi][bj][bk + o].value * B->cells[bi][bj][bk + o].value / precomputed_powers[o];
-                                sum += A->cells[bi][bj][bk - o].value * B->cells[bi][bj][bk - o].value / precomputed_powers[o];
+                                sum += ((A->cells[bi + o][bj][bk].value * B->cells[bi + o][bj][bk].value) 
+                                     + (A->cells[bi - o][bj][bk].value * B->cells[bi - o][bj][bk].value) 
+                                     + (A->cells[bi][bj + o][bk].value * B->cells[bi][bj + o][bk].value) 
+                                     + (A->cells[bi][bj - o][bk].value * B->cells[bi][bj - o][bk].value) 
+                                     + (A->cells[bi][bj][bk + o].value * B->cells[bi][bj][bk + o].value) 
+                                     + (A->cells[bi][bj][bk - o].value * B->cells[bi][bj][bk - o].value)) 
+                                     / precomputed_powers[o]; 
                             }
                             C->cells[bi][bj][bk].value = sum;
                         }
